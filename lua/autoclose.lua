@@ -42,12 +42,28 @@ local function insert_get_pair()
    return line:sub(col, col + 1)
 end
 
+local function insert_get_pair_before()
+   -- add "_" to let close function work in the first col
+   local line = "__" .. vim.api.nvim_get_current_line()
+   local col = vim.api.nvim_win_get_cursor(0)[2] + 2
+
+   return line:sub(col - 1, col)
+end
+
 local function command_get_pair()
    -- add "_" to let close function work in the first col
    local line = "_" .. vim.fn.getcmdline()
    local col = vim.fn.getcmdpos()
 
    return line:sub(col, col + 1)
+end
+
+local function command_get_pair_before()
+   -- add "__" to let close function work in the first col
+   local line = "__" .. vim.fn.getcmdline()
+   local col = vim.fn.getcmdpos() + 1
+
+   return line:sub(col - 1, col)
 end
 
 local function is_pair(pair)
@@ -100,9 +116,17 @@ local function handler(key, info, mode)
    end
 
    local pair = mode == "insert" and insert_get_pair() or command_get_pair()
+   local pair_before = mode == "insert" and insert_get_pair_before()
+      or command_get_pair_before()
 
-   if (key == "<BS>" or key == "<C-H>" or key == "<C-W>") and is_pair(pair) then
-      return "<BS><Del>"
+   if key == "<BS>" then
+      if is_pair(pair) then
+         return "<BS><Del>"
+      end
+      if is_pair(pair_before) then
+         return "<Left><BS><Del>"
+      end
+      return "<BS>"
    elseif
       mode == "insert"
       and (key == "<CR>" or key == "<S-CR>")
